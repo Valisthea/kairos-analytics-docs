@@ -32,5 +32,5 @@
 
 * [Full API Reference](reference/api-reference.md)
 * [Troubleshooting](reference/troubleshooting.md)
-* [Architecture](reference/architecture.md)
+* [Architecture](infrastructure/architecture.md)
 * [Roadmap](reference/roadmap.md)
