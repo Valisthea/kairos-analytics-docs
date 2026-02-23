@@ -1,28 +1,44 @@
 # Smart Contracts
 
-The two contracts that form the on-chain backbone of Kairos Analytics.
+The contracts that form the on-chain backbone of Kairos Analytics.
 
 ---
 
-## Network
+## Networks
 
-All contracts are deployed on **Base mainnet** (chain ID: 8453).
+Kairos Analytics is deployed on two networks:
 
-Base is an Ethereum L2 built by Coinbase. It offers low transaction costs, fast finality, and is EVM-compatible.
+| Network | Chain ID | Use case |
+|---|---|---|
+| **Base Mainnet** | 8453 | Production apps |
+| **BSC Testnet** | 97 | Testing, early integrations |
 
 ---
 
-## Registry Contract
+## Base Mainnet Contracts
 
+### Registry Contract
 **Address:** `0xcbf3e71fb2E09929682b8448442d184f8E1E37B8`
+[View on Basescan ↗](https://basescan.org/address/0xcbf3e71fb2E09929682b8448442d184f8E1E37B8)
 
-**View on Basescan:** [basescan.org/address/0xcbf3e71fb2E09929682b8448442d184f8E1E37B8](https://basescan.org/address/0xcbf3e71fb2E09929682b8448442d184f8E1E37B8)
+### Relayer Contract
+**Address:** `0x90991Ae4F708D62a9BB8B09734d3411987d1A6FE`
+[View on Basescan ↗](https://basescan.org/address/0x90991Ae4F708D62a9BB8B09734d3411987d1A6FE)
 
-### Purpose
+---
 
-The Registry maps app IDs to their owner addresses. Before the relayer accepts and stores events for an app, it checks the Registry to confirm the app is registered.
+## BSC Testnet Contracts
 
-### Key functions
+### Registry Contract
+**Address:** `0x6C7986a3d79E1AFECfE242f92f2A0DFeC3397133`
+[View on BscScan Testnet ↗](https://testnet.bscscan.com/address/0x6C7986a3d79E1AFECfE242f92f2A0DFeC3397133)
+
+---
+
+## Contract roles
+
+### Registry
+Maps App IDs to their owners. The relayer checks the Registry before accepting events for any app.
 
 ```solidity
 // Register a new app
@@ -35,28 +51,11 @@ function isRegistered(string calldata appId) external view returns (bool)
 function getOwner(string calldata appId) external view returns (address)
 ```
 
-### Who calls it
-
-- **Relayer** — reads `isRegistered()` before processing incoming events
-- **Dashboard** — reads `getOwner()` to verify that the connected wallet owns the app it's trying to view
-- **App developers** — call `registerApp()` to register a new app
-
----
-
-## Relayer Contract
-
-**Address:** `0x90991Ae4F708D62a9BB8B09734d3411987d1A6FE`
-
-**View on Basescan:** [basescan.org/address/0x90991Ae4F708D62a9BB8B09734d3411987d1A6FE](https://basescan.org/address/0x90991Ae4F708D62a9BB8B09734d3411987d1A6FE)
-
-### Purpose
-
-The Relayer contract stores batched event hashes on-chain. Each batch is a Merkle root or hash of multiple events, committed in a single transaction for gas efficiency.
-
-### Key functions
+### Relayer Contract
+Stores batched event hashes on-chain. Each batch is a hash of N events, committed in a single transaction.
 
 ```solidity
-// Submit a batch of events (called by the relayer service)
+// Submit a batch (called by the relayer service only)
 function submitBatch(
   string calldata appId,
   bytes32 batchHash,
@@ -65,36 +64,35 @@ function submitBatch(
   uint256 toTimestamp
 ) external onlyRelayer
 
-// Verify a batch exists on-chain
+// Read a batch — callable by anyone
 function getBatch(uint256 batchId) external view returns (Batch memory)
 ```
-
-### Who calls it
-
-- **Relayer service** — calls `submitBatch()` on each commit cycle
-- **Anyone** — can read `getBatch()` to verify that events were recorded
 
 ---
 
 ## Registering your app
 
-To start receiving events, your app ID must be registered in the Registry contract.
+Your App ID must be registered in the Registry before the relayer accepts your events.
 
-**Option 1 — Via the Admin Panel**
-Go to Admin Panel → Manage App IDs → Register New App. Fill in your App Name, App ID, and network. The Admin Panel calls the Registry contract on your behalf.
+**Via the dashboard (recommended)**
+Register during onboarding at [kairosanalytics.org](https://kairosanalytics.org). The registration wizard handles the contract call automatically.
 
-**Option 2 — Directly via Basescan**
+**Via Basescan (manual)**
 1. Go to the Registry contract on Basescan
-2. Connect your wallet
-3. Call `registerApp(appId, name)` from the **Write Contract** tab
+2. Connect your wallet → Write Contract tab
+3. Call `registerApp(appId, name)`
 
-**Option 3 — Via code (ethers.js)**
-```javascript
-import { ethers } from 'ethers'
+---
 
-const provider = new ethers.BrowserProvider(window.ethereum)
-const signer = await provider.getSigner()
-const registry = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, signer)
+## Verifying data integrity
 
-await registry.registerApp('your-app-id', 'Your App Name')
-```
+Anyone can verify that a batch of events has not been modified:
+
+1. Note the TX hash shown in the dashboard's on-chain proof bar
+2. Go to Basescan or BscScan Testnet
+3. Find the transaction → read the `batchHash` in the input data
+4. Compare with the hash recomputed from the raw events
+
+Or simply click **"Verify integrity"** in the dashboard — it does this automatically.
+
+> ℹ️ On-chain proof is entirely server-side. Your users do not need to connect a wallet for verification to work.

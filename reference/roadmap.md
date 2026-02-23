@@ -1,59 +1,64 @@
 # Roadmap
 
-What's done, what's in progress, and what's coming next.
+Current status of every feature.
 
 ---
 
-## Stable
+## Stable ✅
 
 | Feature | Description |
-|---------|-------------|
-| SDK `@valisthea/analytics` | Published on npm, importable via CDN |
-| `offchain` mode | HTTP transport to Railway relayer |
-| Session management | Automatic session ID generation and persistence |
-| `init()` / `page()` / `track()` | Core SDK API |
-| Relayer service | Deployed on Railway, accepts events via `POST /track` |
-| Registry contract | App registration on Base mainnet |
-| Relayer contract | On-chain event batch storage |
-| App Dashboard | 11 toggleable widgets, mock + live data modes |
-| Admin Panel | Cross-app overview, revenue, alerts, app management |
-| Auth modal | Login via access code or wallet address |
-| `kairos-analytics-api.js` | Shared client for dashboard data fetching |
+|---|---|
+| SDK snippet | One `<script>` tag, zero dependencies, auto page/click tracking |
+| `trackSwap()` / `trackTransaction()` / `trackWalletConnect()` | Core Web3 tracking functions |
+| `trackEvent()` / `trackPageView()` | Generic event and page tracking |
+| Railway Relayer v4.0 | Multi-chain, batch processing, health endpoint |
+| Base Mainnet contracts | Registry + Relayer contract live |
+| BSC Testnet contracts | Registry deployed — `0x6C7986a3...` |
+| Multi-chain routing | Events routed to correct chain per appId |
+| App Dashboard | 11 widgets — live feed, wallet analytics, geo, funnels, TX feed |
+| On-chain proof bar | Last anchored block, TX hash, Basescan / BscScan link |
+| Admin Panel | Cross-app overview, alerts, app management |
+| Supabase Auth | Google OAuth + GitHub OAuth + Email/Password |
+| Register.html wizard | 4-step onboarding — account → appId → interests → plan |
+| Mandatory snippet popup | Blocks dashboard until snippet is copied and confirmed |
+| Plan gating | Widgets locked/unlocked based on active plan |
+| Stripe payments | Builder ($29/mo) and Protocol ($99/mo) via Stripe Checkout |
+| Plan badge in navbar | FREE / BUILDER / PROTOCOL shown in dashboard header |
 
 ---
 
-## In Progress
+## In Progress 🔶
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Relayer `/health` endpoint | Health check for dashboard status indicator | 🔶 Verify |
-| Relayer `/events` endpoint | Query stored events by appId | 🔶 Add to relayer |
-| Relayer `/sessions` endpoint | Query active sessions by appId | 🔶 Add to relayer |
-| AppId registration flow | Register apps from the Admin Panel UI | 🔶 Contract call |
+| Feature | Status |
+|---|---|
+| PostgreSQL persistence | Variables configured — sprint pending |
+| Stripe webhook handler | Endpoint defined — activation flow pending |
+| Plan auto-activation after payment | Pending webhook handler |
+| Email confirmation flow | Supabase default — UX polish pending |
 
 ---
 
-## Planned
+## Planned 📋
 
 | Feature | Description |
-|---------|-------------|
-| **React SDK** | First-class hooks: `useAnalytics()`, `usePageView()`, `<Track>` component |
-| **Next.js plugin** | Auto page view tracking, route-aware session management |
-| **Onchain mode** | User-signed events via MetaMask — maximum decentralization |
-| **Webhook alerts** | Push notifications to Slack or Discord on alert triggers |
-| **Custom dashboards** | Drag-and-drop widget layout builder |
-| **Funnel builder** | Define custom funnels from the UI without code changes |
-| **Data export** | CSV export of any event dataset |
-| **Multi-chain support** | Polygon, Arbitrum, BSC in addition to Base |
+|---|---|
+| **React SDK** | `useAnalytics()` hook, `usePageView()`, `<Track>` component |
+| **Next.js plugin** | Auto page view on route change, middleware support |
+| **Webhook alerts** | Push to Slack or Discord on alert triggers |
+| **Custom dashboard layouts** | Drag-and-drop widget builder |
+| **Funnel builder** | Define funnels from the UI, no code changes |
+| **CSV export** | Export any event dataset as CSV |
+| **Polygon / Arbitrum** | Additional chain support |
 | **Team access** | Multiple users per app with role-based permissions |
+| **Asterchain migration** | Native analytics layer on Asterchain mainnet at launch |
 
 ---
 
-## Contributing
+## Chain deployment status
 
-Kairos Analytics is designed to be extended. If you want to contribute:
-
-- **New SDK events** — open a PR with the event definition and tracking call
-- **Dashboard widgets** — widgets are self-contained components, easy to add
-- **Relayer endpoints** — Express routes, follow existing patterns
-- **Bug reports** — open an issue with console logs and reproduction steps
+| Chain | Registry | Relayer | Status |
+|---|---|---|---|
+| Base Mainnet (8453) | `0xcbf3e71f...` | `0x90991Ae4...` | ✅ Production |
+| BSC Testnet (97) | `0x6C7986a3...` | — | ✅ Active |
+| BSC Mainnet | — | — | 📋 Planned |
+| Asterchain | — | — | 📋 On mainnet launch |

@@ -1,91 +1,64 @@
 # Authentication
 
-How to connect your account and activate live data in both dashboards.
+How to sign in to Kairos Analytics.
 
 ---
 
-## App Dashboard
+## Sign up
 
-### Step 1 — Open the dashboard
+Go to [kairosanalytics.org](https://kairosanalytics.org) and click **Start Free**, **Start Builder** or **Start Protocol** depending on the plan you want.
 
-Navigate to your App Dashboard URL. In the top right corner, you'll see a **Connect** button.
+You'll be taken to the registration wizard with three sign-in options:
 
-### Step 2 — Enter your credentials
+### Google
+Click **Continue with Google** → authorize the Kairos app in your Google account → you're in.
 
-A login modal will appear with two options:
+### GitHub
+Click **Continue with GitHub** → authorize the Kairos OAuth app → you're in.
 
-**Access Code**
-Enter your account access code. This is the code you received when your account was provisioned, or the code you use to log into the platform.
-
-**Wallet Address**
-Enter your wallet address (0x...). The system will look up your account by wallet ownership.
-
-### Step 3 — Live data activates
-
-Once authenticated:
-- The Connect button turns green and shows your username
-- The **MOCK DATA** badge changes to **LIVE DATA**
-- All widgets reload with real data from the relayer
-- Data auto-refreshes every 30 seconds
+### Email / Password
+Enter your email and a password → click **Create account** → check your email for the confirmation link → click it → you're in.
 
 ---
 
-## Admin Panel
+## Plans and access
 
-The Admin Panel uses the same login flow but additionally requires your account to have **admin privileges**.
+| Plan | Price | Access |
+|---|---|---|
+| **Free Beta** | $0/month | Core widgets, 5M events/month, 30 days history |
+| **Builder** | $29/month | Full behavioral + Web3 widgets, 50M events, 12 months history |
+| **Protocol** | $99/month | Everything + API access, unlimited dApps, team seats |
 
-### Setting up admin access
-
-If you have direct access to your application's database, set `is_admin = true` on your user record in the `profiles` table.
-
-If you don't have direct database access, contact your platform administrator to grant admin access.
-
-### What happens without admin access
-
-If you authenticate with valid credentials but your account doesn't have admin privileges, you'll see:
-
-```
-Admin role required. Contact your platform administrator.
-```
-
-Your credentials are valid — you just need the admin flag enabled on your account.
-
-### Continue without authentication
-
-Both dashboards offer a **"Continue with mock data"** option in the login modal. This lets you explore the full interface with realistic sample data without authenticating. Useful for demos or evaluating the dashboard before committing.
+Free plan users see locked widgets for Builder and Protocol features. Click any locked widget to see the upgrade prompt.
 
 ---
 
-## How authentication works
+## After signing in — onboarding
 
-```
-User enters access code or wallet address
-  ↓
-POST to your application API { action: 'auth-connect', code: '...' }
-  ↓
-API returns { session_token, user }
-  ↓
-Token stored in browser localStorage
-  ↓
-All dashboard API calls use Bearer token
-  ↓
-Admin Panel additionally checks user.is_admin === true
-```
+On your first login, a mandatory setup screen appears:
 
-The `kairos-analytics-api.js` client handles this flow automatically.
+1. **Choose your App ID** — unique identifier for your dApp (`my-dex`, `nft-market`, etc.)
+2. **Copy your snippet** — the script tag to paste in your dApp's HTML
+3. **Confirm** — click "Open my dashboard" once you've copied the snippet
+
+This screen can't be skipped. Once completed, it won't appear again.
 
 ---
 
-## Session persistence
+## Signing out
 
-Once authenticated, your session is stored in `localStorage`. You won't need to log in again when you return to the dashboard, until the session expires.
+Click your account avatar in the top-right navbar → **Sign out**.
 
-To manually log out, click your username in the top navigation bar and select **Disconnect**.
+Your session ends immediately. All localStorage keys (`ka_appId`, `ka_onboarding_done`) are cleared.
 
 ---
 
-## Security notes
+## Switching apps
 
-- The dashboard only makes read requests to your API — it never writes or modifies data
-- Session tokens are stored in `localStorage`, not cookies — no CSRF risk
-- No passwords are ever stored in the dashboard client
+If you have multiple dApps registered, use the App ID selector in the navbar to switch between them. Each App ID has its own event stream and dashboard state.
+
+---
+
+## Password reset
+
+On the login screen → **Forgot password** → enter your email → click the reset link in your inbox → set a new password.

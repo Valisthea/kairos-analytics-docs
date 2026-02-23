@@ -1,33 +1,35 @@
 # Kairos Analytics
 
-**On-chain behavioral analytics for Web3 applications.**
+**Real-time behavioral analytics for Web3 applications — with on-chain proof of integrity.**
 
-Kairos Analytics lets you track user behavior, measure conversions, and verify data integrity — without relying on Google, Mixpanel, or any centralized third party. Events are signed and stored on Base mainnet, making your analytics tamper-proof and permanently auditable.
+Kairos Analytics tracks what happens on your frontend before the transaction: where users hesitate, which flows convert, where they drop off. Every event batch is cryptographically anchored on-chain — making your analytics tamper-proof and permanently verifiable.
 
 ---
 
 ## Why Kairos Analytics?
 
-Traditional analytics tools store your data on their servers. They can be blocked by ad blockers, disabled by privacy regulations, or simply taken down. Kairos Analytics routes events through a lightweight relayer that batches and commits them to the blockchain — your data belongs to you, forever.
+Most analytics tools show you what happened on-chain. Kairos shows you what happened **before** the transaction — the clicks, the navigation, the friction. Combined with on-chain proof, it's the only platform where your data is both behavioral and verifiable.
 
-| | Traditional Analytics | Kairos Analytics |
-|---|---|---|
-| Data storage | Third-party servers | Base mainnet (you own it) |
-| Censorable | Yes | No |
-| Blockable by ad blockers | Yes | No |
-| Privacy (PII) | Complex compliance | No PII collected |
-| Verifiable | No | Yes (on-chain proof) |
-| Integration | Copy one snippet | Copy one snippet |
+| | Google Analytics | Mixpanel | Dune Analytics | **Kairos Analytics** |
+|---|---|---|---|---|
+| Behavioral tracking | ✅ | ✅ | ❌ | ✅ |
+| Web3 / wallet events | ❌ | ❌ | ✅ | ✅ |
+| On-chain data proof | ❌ | ❌ | ❌ | ✅ |
+| Data you own | ❌ | ❌ | ❌ | ✅ |
+| Works without cookies | ❌ | ❌ | ✅ | ✅ |
+| Integration time | 5 min | 30 min | N/A | **3 min** |
+
+> ⚠️ **Note on "data integrity":** On-chain proof in Kairos verifies that **your analytics data was not modified after collection**. It does not require users to connect a wallet — proof is handled server-side by the relayer. Wallet connection is optional and only relevant if you track wallet events in your dApp.
 
 ---
 
 ## How to use these docs
 
-If you're integrating the SDK for the first time, start with [How It Works](getting-started/how-it-works.md) to understand the full picture, then follow the [Quick Start](getting-started/quickstart.md).
+New to Kairos? Start with [How It Works](getting-started/how-it-works.md) then follow the [Quick Start](getting-started/quickstart.md).
 
-If you're setting up the dashboard for your app, go directly to [App Dashboard](dashboards/app-dashboard.md) and [Authentication](dashboards/authentication.md).
+Already integrated? Go to [Tracking Events](sdk/tracking.md) or [Dashboard](dashboards/app-dashboard.md).
 
-If something isn't working, check [Troubleshooting](reference/troubleshooting.md).
+Something broken? Check [Troubleshooting](reference/troubleshooting.md).
 
 ---
 
@@ -35,8 +37,8 @@ If something isn't working, check [Troubleshooting](reference/troubleshooting.md
 
 | | |
 |---|---|
-| ⚡ [Quick Start](getting-started/quickstart.md) | Up and running in 5 minutes |
-| 📋 [Installation & Snippet](sdk/installation.md) | Copy-paste snippet for any HTML page |
-| 📊 [Tracking Events](sdk/tracking.md) | How to track user actions |
-| 🔑 [Authentication](dashboards/authentication.md) | Access your live dashboard |
+| ⚡ [Quick Start](getting-started/quickstart.md) | Live in 3 minutes |
+| 📋 [Snippet & Installation](sdk/installation.md) | One script tag, any framework |
+| 📊 [Tracking Events](sdk/tracking.md) | Track swaps, clicks, sessions |
+| 🔐 [Authentication](dashboards/authentication.md) | Sign in to your dashboard |
 | 🛠 [Troubleshooting](reference/troubleshooting.md) | Fix common issues |

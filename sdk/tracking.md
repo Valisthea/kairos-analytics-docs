@@ -1,153 +1,163 @@
 # Tracking Events
 
-How to capture user actions across your application.
+How to capture user actions across your dApp.
 
 ---
 
-## The `track()` function
+## Automatic tracking
 
-```javascript
-_k.track(eventName, category, properties)
-```
+Once the snippet is installed, these events fire with zero extra code:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `eventName` | string | ✅ Yes | Name of the event in `snake_case` |
-| `category` | string | ✅ Yes | Event category — see [Event Categories](categories.md) |
-| `properties` | object | No | Any key-value pairs relevant to the event |
+- `page_view` — path, referrer, device type
+- `click` — element tag, text, position on page
+- `session_start` / `session_end` — duration, pages visited, depth
 
 ---
 
-## Basic examples
+## Manual tracking functions
 
-**Button click:**
-```javascript
-button.addEventListener('click', () => {
-  _k.track('cta_clicked', 'ui', { label: 'hero_signup' })
-})
-```
+### `trackSwap(fromToken, toToken, amount)`
 
-**Form submission:**
-```javascript
-form.addEventListener('submit', () => {
-  _k.track('form_submitted', 'ui', { form_id: 'onboarding' })
-})
-```
+Track a swap attempt in a DEX:
 
-**Wallet connection:**
 ```javascript
-async function connectWallet() {
-  _k.track('wallet_connect_initiated', 'wallet')
-  try {
-    const address = await provider.connect()
-    _k.track('wallet_connected', 'wallet', { address, chain: chainId })
-  } catch (err) {
-    _k.track('wallet_connect_failed', 'wallet', { reason: err.message })
-  }
+// On swap button click
+KairosAnalytics.trackSwap('ETH', 'USDC', 1.5);
+
+// With success/failure
+try {
+  await executeSwap();
+  KairosAnalytics.trackEvent('swap_success', { pair: 'ETH/USDC', amount: 1.5 });
+} catch (err) {
+  KairosAnalytics.trackEvent('swap_failed', { pair: 'ETH/USDC', reason: err.message });
 }
 ```
 
-**Transaction flow:**
+---
+
+### `trackTransaction(txHash, amount, success)`
+
+Track an on-chain transaction confirmation:
+
 ```javascript
-// Initiated
-_k.track('purchase_initiated', 'transaction', { item_id: 'item_123', price: 10.00 })
-
-// Confirmed
-_k.track('purchase_completed', 'transaction', { item_id: 'item_123', tx_hash: '0x...' })
-
-// Failed
-_k.track('purchase_failed', 'transaction', { item_id: 'item_123', reason: 'insufficient_balance' })
+const receipt = await tx.wait();
+KairosAnalytics.trackTransaction(
+  receipt.hash,
+  amount,
+  receipt.status === 1  // true = success, false = reverted
+);
 ```
 
 ---
 
-## Naming conventions
+### `trackWalletConnect(address, walletType)`
 
-Use `snake_case` for all event names. Structure names as `noun_verb` or `object_action`:
+Track when a user connects their wallet to your dApp:
+
+```javascript
+// After wallet connection succeeds
+KairosAnalytics.trackWalletConnect('0xabc...', 'MetaMask');
+```
+
+> ℹ️ **Note:** This tracks the user's wallet connection event in your analytics. It has nothing to do with on-chain proof — proof is handled server-side by the relayer without any wallet interaction from your users.
+
+---
+
+### `trackPageView(path)`
+
+For single-page apps (React, Vue, etc.) — call on every route change:
+
+```javascript
+// React Router
+useEffect(() => {
+  KairosAnalytics.trackPageView(location.pathname);
+}, [location.pathname]);
+
+// Vue Router
+router.afterEach((to) => {
+  KairosAnalytics.trackPageView(to.path);
+});
+```
+
+---
+
+### `trackEvent(name, properties)`
+
+Track any custom event:
+
+```javascript
+// UI interaction
+KairosAnalytics.trackEvent('filter_applied', { filter: 'last_7_days' });
+
+// Feature usage
+KairosAnalytics.trackEvent('csv_exported', { rows: 1500 });
+
+// Error
+KairosAnalytics.trackEvent('api_error', { endpoint: '/swap', code: 429 });
+```
+
+---
+
+## Event naming conventions
+
+Use `snake_case`. Structure as `object_action`:
 
 ```
-✅ Good:
+✅ Good
   page_view
-  button_clicked
+  swap_initiated
   wallet_connected
-  purchase_completed
+  transaction_failed
   modal_opened
-  filter_applied
 
-❌ Avoid:
-  pageView         (camelCase)
-  clicked-button   (hyphens)
-  PURCHASE         (uppercase)
-  click            (too vague)
+❌ Avoid
+  pageView        (camelCase)
+  swap-initiated  (hyphens)
+  SWAP            (uppercase)
+  click           (too vague)
 ```
 
 ---
 
 ## Properties best practices
 
-Properties are free-form key-value pairs. Keep them:
-
-- **Flat** — avoid deeply nested objects
-- **Consistent** — use the same key names for the same concepts across events
-- **Descriptive** — prefer `payment_method: 'crypto'` over `method: 1`
-- **Non-identifying** — never include emails, real names, or passwords
+- **Flat** — no deeply nested objects
+- **Consistent** — same key names across events
+- **Non-identifying** — never include emails, names, passwords
 
 ```javascript
-// Good properties
-_k.track('item_purchased', 'transaction', {
-  item_id: 'plan_pro',
-  price_usd: 49.00,
-  payment_method: 'crypto',
-  currency: 'USDC'
-})
+// ✅ Good
+KairosAnalytics.trackEvent('plan_selected', {
+  plan: 'builder',
+  price_usd: 29,
+  billing: 'monthly'
+});
 
-// Avoid
-_k.track('item_purchased', 'transaction', {
-  user_email: 'john@...',   // PII — never do this
-  data: { nested: { deeply: true } }  // hard to query
-})
+// ❌ Avoid
+KairosAnalytics.trackEvent('plan_selected', {
+  user_email: 'john@...',      // PII — never
+  data: { plan: { id: 1 } }   // nested — hard to query
+});
 ```
 
 ---
 
 ## Tracking a conversion funnel
 
-A funnel is just a sequence of events. Define the steps you care about, then track each one:
+A funnel is a sequence of events. Track each step and the dashboard computes drop-off automatically:
 
 ```javascript
-// Step 1 — user lands on the page
-page('/pricing')
+// Step 1 — user views pricing
+KairosAnalytics.trackPageView('/pricing');
 
-// Step 2 — user interacts with the product
-_k.track('pricing_plan_viewed', 'ui', { plan: 'pro' })
+// Step 2 — user selects a plan
+KairosAnalytics.trackEvent('plan_selected', { plan: 'builder' });
 
-// Step 3 — user initiates purchase
-_k.track('checkout_started', 'transaction', { plan: 'pro', price: 49 })
+// Step 3 — user enters checkout
+KairosAnalytics.trackEvent('checkout_started', { plan: 'builder', price: 29 });
 
-// Step 4 — user completes purchase
-_k.track('checkout_completed', 'transaction', { plan: 'pro', tx_hash: '0x...' })
+// Step 4 — payment confirmed
+KairosAnalytics.trackEvent('checkout_completed', { plan: 'builder' });
 ```
 
-The dashboard's Conversion Funnel widget automatically computes drop-off rates between any sequence of events.
-
----
-
-## Error tracking
-
-Track failures the same way you track successes — just use a consistent naming pattern:
-
-```javascript
-try {
-  await submitTransaction()
-  _k.track('transaction_success', 'transaction', { amount, token })
-} catch (err) {
-  _k.track('transaction_failed', 'transaction', {
-    amount,
-    token,
-    error_code: err.code,
-    reason: err.message.slice(0, 100)  // truncate long messages
-  })
-}
-```
-
-The Admin Panel's Alerts section automatically surfaces spikes in `_failed` events.
+The Conversion Funnel widget in the dashboard visualizes drop-off between any event sequence.

@@ -1,88 +1,104 @@
 # Quick Start
 
-From zero to your first tracked event in under 5 minutes.
+From zero to your first tracked event in under 3 minutes.
 
 ---
 
-## Step 1 — Add the snippet to your page
+## Step 1 — Create your account
 
-Paste this block before `</body>` in any HTML page. Replace `your-app-id` with your registered App ID.
+Go to [kairosanalytics.org](https://kairosanalytics.org) → click **Start Free** → sign up with Google, GitHub or email.
+
+No credit card required for the Free plan.
+
+---
+
+## Step 2 — Choose your App ID
+
+During registration, you'll pick an App ID — a unique identifier for your dApp:
+
+```
+my-dex         ✅ valid
+nft-market     ✅ valid
+My App         ❌ no spaces
+my_app!        ❌ no special chars
+```
+
+Rules: lowercase letters, numbers and hyphens only. 3–32 characters.
+
+Your App ID appears in your snippet and links your frontend events to your dashboard.
+
+---
+
+## Step 3 — Add the snippet
+
+Paste this before `</body>` on every page of your dApp. Replace `your-app-id` with your registered App ID.
 
 ```html
 <!-- Kairos Analytics -->
-<script type="module">
-  import { init, page, track } from 'https://esm.sh/@valisthea/analytics'
-  ;(async () => {
-    try {
-      await init({ appId: 'your-app-id', mode: 'offchain' })
-      page(window.location.pathname)
-      window._k = { track }
-    } catch (e) {
-      window._k = { track: () => {} }
-    }
-  })()
+<script>
+  (function() {
+    window.KAIROS_APP_ID = "your-app-id";
+    var s = document.createElement('script');
+    s.src = 'https://kairos-dashboard-seven.vercel.app/snippet.js';
+    s.async = true;
+    document.head.appendChild(s);
+  })();
 </script>
 ```
 
-That's it. The SDK is now running.
+That's it. Page views and clicks are now tracked automatically.
 
 ---
 
-## Step 2 — Track your first event
+## Step 4 — Track your first custom event
 
-After the snippet, call `_k.track()` anywhere in your page:
-
-```html
-<button onclick="_k.track('signup_clicked', 'ui', { location: 'hero' })">
-  Sign Up
-</button>
-```
-
-Or in a separate JS file:
+After the snippet loads, call tracking functions anywhere in your JS:
 
 ```javascript
-document.getElementById('connectBtn').addEventListener('click', () => {
-  _k.track('wallet_connect_clicked', 'wallet', {
-    page: window.location.pathname
-  })
-})
+// Track a swap attempt
+KairosAnalytics.trackSwap('ETH', 'USDC', 1.5);
+
+// Track a transaction confirmation
+KairosAnalytics.trackTransaction('0xabc...', 500, true);
+
+// Track any custom event
+KairosAnalytics.trackEvent('button_clicked', { label: 'connect_wallet' });
 ```
 
 ---
 
-## Step 3 — Verify in the browser console
+## Step 5 — Verify in the browser console
 
 Open DevTools → Console. You should see:
 
 ```
-[KairosAnalytics] SDK initialized | appId: your-app-id | session: a3f9b2
-[KairosAnalytics] page_view → /
-[KairosAnalytics] Event sent: wallet_connect_clicked
-```
-
-If you see this, events are flowing to the relayer.
-
-{% hint style="info" %}
-If you see `Waku not yet available` — that's expected. In `offchain` mode the SDK sends events via HTTP to the relayer, not through Waku. This message does not mean events are failing.
-{% endhint %}
-
----
-
-## Step 4 — View your data
-
-Open the Kairos Analytics dashboard, connect with your account, and select your app from the list. Events appear in the Live Feed within seconds.
-
-```
-https://your-dashboard-url/dashboard-app.html
+[Kairos] SDK initialized | appId: your-app-id
+[Kairos] page_view → /
+[Kairos] Event queued: swap_attempted
+[Kairos] Batch sent → relayer ✓
 ```
 
 ---
 
-## What happens next
+## Step 6 — Open your dashboard
 
-- Every `page()` call tracks a page view with the current path
-- Every `track()` call sends an event to the relayer
-- The relayer batches events and commits them to Base mainnet
-- Your dashboard shows live behavioral data
+Go to your dashboard and select your App ID from the navbar. Events appear in the Live Feed within seconds.
 
-You're done. From here, start adding `_k.track()` calls wherever user actions matter. See [Tracking Events](../sdk/tracking.md) for the full guide.
+```
+https://kairos-dashboard-seven.vercel.app/dashboard-app.html
+```
+
+---
+
+## What's tracked automatically
+
+Once the snippet is on your page, these fire without any extra code:
+
+| Event | Trigger |
+|---|---|
+| `page_view` | Every page load |
+| `click` | Every button/link click |
+| `session_start` | New browser session |
+| `session_end` | Tab close or 30min inactivity |
+
+Everything else — swaps, transactions, wallet connections — you add with one-line function calls.
