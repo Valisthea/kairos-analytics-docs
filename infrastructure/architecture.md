@@ -22,26 +22,52 @@ Published on npm. Can be imported via npm or loaded as a browser script. Runs en
 
 PostgreSQL database hosted on Supabase. Stores all event data and K-PPE metadata.
 
-**Tables:**
+**Core tables:**
 
 | Table | Purpose |
 |---|---|
-| `analytics_events` | Raw event data, session info, `client_hash`, `batch_id` |
+| `analytics_events` | Raw event data, session info, `client_hash`, `client_event_id`, `batched`, `batch_id` |
 | `merkle_batches` | Batch metadata: Merkle root, TX hash, status, event count |
 | `event_receipts` | Per-event Merkle proofs: leaf hash, proof path, batch reference |
+| `kppe_verifications` | Verification records: who verified, result, timestamp |
 
-### K-PPE Engine (Railway)
+**KA-HAP tables (security architecture):**
 
-A TypeScript cron job deployed on Railway. Runs every 60 seconds.
+| Table | Purpose |
+|---|---|
+| `kpe_proof_batches` | K-PPE proof batch records |
+| `kpe_event_proofs` | Individual event proofs for KA-HAP verification |
+| `kpe_signing_keys` | Cryptographic signing key management |
+| `kpe_verifications` | KA-HAP verification audit trail |
+| `kpe_status` | K-PPE system status snapshots |
+| `kpe_nonces` | Replay-attack prevention nonces |
 
-**Responsibilities:**
-- Query Supabase for unprocessed events (max 256 per batch)
-- Read `client_hash` from each event (never re-hashes)
-- Build a binary Merkle tree with sorted-pair hashing
-- Pad leaves to the next power of 2 with zero hashes
-- Call `KPPEAnchor.anchorMerkleRoot()` on Base mainnet
-- Write Merkle proofs for each event back to `event_receipts`
-- Update batch status in `merkle_batches`
+The `events` table now includes `client_hash` (keccak256 from SDK), `client_event_id` (UUID from SDK), `batched` (boolean), and `batch_id` (reference to `merkle_batches`).
+
+### Local Merkle Tree Builder (`src/kpe/merkle.ts`)
+
+The Merkle tree builder now runs **locally inside the relayer** -- no external K-PPE service is needed for core anchoring. This is a key architectural update.
+
+The builder is a pure TypeScript module (`src/kpe/merkle.ts`) that provides:
+- `buildMerkleTree(leaves)` -- builds a sorted-pair binary Merkle tree from client hash values
+- `generateProof(tree, leafIndex)` -- generates a Merkle proof for a specific leaf
+- `verifyProof(leaf, proof, leafIndex, root)` -- verifies a proof locally
+- `buildMerkleBatch(leaves, batchId, appId, prevRoot)` -- builds a complete batch with all proofs
+
+The relayer's `BatchManager` calls `buildMerkleBatch()` during each flush cycle, then calls `OnChainSender.anchorMerkleRoot()` to anchor the root on-chain.
+
+### K-PPE Engine (optional standalone -- Railway)
+
+The standalone K-PPE Engine is an optional TypeScript cron job that can be deployed separately on Railway. For most deployments, the local Merkle builder inside the relayer is sufficient.
+
+**When deployed standalone, it runs every 60 seconds and:**
+- Queries Supabase for unprocessed events (max 256 per batch)
+- Reads `client_hash` from each event (never re-hashes)
+- Builds a binary Merkle tree with sorted-pair hashing
+- Pads leaves to the next power of 2
+- Calls `KPPEAnchor.anchorBatch()` on Base mainnet
+- Writes Merkle proofs for each event back to `event_receipts`
+- Updates batch status in `merkle_batches`
 
 ### KPPEAnchor Contract (Base Mainnet)
 
@@ -64,14 +90,24 @@ Stores the mapping of App IDs to their owner addresses. Used for authentication 
 
 ### Relayer (Railway)
 
-A Node.js/Express service deployed on Railway. Acts as the API layer between the frontend and the data.
+A Node.js/Express service deployed on Railway. Acts as the API layer between the frontend and the data. The relayer now includes the local Merkle tree builder and the `BatchManager`, making it the central component for both event collection and on-chain anchoring.
 
 **Responsibilities:**
 - Receive events via `POST /track` (legacy compatibility)
 - Session management and validation
+- **Build Merkle trees locally** via `BatchManager` using `flushKPPE()` (trustless anchoring) or `flushLegacy()` (backward compat, deprecated)
+- **Anchor Merkle roots on-chain** via `OnChainSender.anchorMerkleRoot()` which calls `KPPEAnchor.anchorBatch()`
 - Expose K-PPE security headers (`X-KA-HAP-*`)
 - Provide `/kpe/health` endpoint for K-PPE status
 - Serve dashboard data via query endpoints
+
+**KPPE_MODE:** The relayer uses the `KPPE_MODE` environment variable to control on-chain behavior:
+
+| Mode | Description | Data on-chain? |
+|---|---|---|
+| **`kppe`** (default) | `flushKPPE()` -- builds Merkle tree, anchors only root | No (private) |
+| `legacy` | `flushLegacy()` -- old `sendBatch()`, full data on-chain | Yes (public) -- **DEPRECATED** |
+| `disabled` | No on-chain submission | N/A |
 
 ### Dashboard (Vercel)
 
@@ -97,13 +133,17 @@ A Next.js application deployed on Vercel. Provides real-time analytics, K-PPE pr
   |    |                                        |                  v
   |    +---------------------------------------->    +---------------------------+
   |    |                                        |    |                           |
-  |    | 4. Return EventReceipt                 |    |  K-PPE Engine (Railway)   |
-  |    |    { eventId, clientHash, timestamp }  |    |                           |
-  |    |                                        |    |  Cron: every 60 seconds   |
-  +---------------------------------------------+    |  1. Fetch pending events  |
+  |    | 4. Return EventReceipt                 |    |  Relayer + Local Merkle   |
+  |    |    { eventId, clientHash, timestamp }  |    |  Builder (Railway)        |
+  |    |                                        |    |                           |
+  +---------------------------------------------+    |  BatchManager (every 60s) |
+                                                     |  1. Fetch pending events  |
                                                      |  2. Read client_hash      |
+                                                     |     (never re-hashes)     |
                                                      |  3. Build Merkle tree     |
-                                                     |  4. Anchor root on-chain  |
+                                                     |     (src/kpe/merkle.ts)   |
+                                                     |  4. anchorMerkleRoot()    |
+                                                     |     on Base mainnet       |
                                                      |  5. Store proofs          |
                                                      |                           |
                                                      +------------|-------------+

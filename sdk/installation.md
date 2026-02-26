@@ -1,6 +1,21 @@
 # Installation
 
-Add Kairos Analytics to any web application with npm or a single script tag.
+Add Kairos Analytics to any web application with npm or a single script tag. The entire setup takes about 3 minutes.
+
+**Package:** `@kairoslab/analytics-sdk`
+
+---
+
+## What the SDK does
+
+The SDK runs entirely in the user's browser. When you call `track()`, it:
+
+1. Canonicalizes the event data (deterministic JSON serialization)
+2. Hashes the canonical data with **keccak256** -- the hash is born client-side and never modified by any server
+3. Sends the event data and `client_hash` to Supabase
+4. Returns an `EventReceipt` containing the `clientHash` and `eventId`
+
+Later, the relayer's built-in Merkle tree builder batches those `client_hash` values into Merkle trees and anchors the root on Base mainnet via `KPPEAnchor.anchorBatch()`. Only the 32-byte root goes on-chain -- your event data stays **private**.
 
 ---
 
@@ -10,6 +25,13 @@ For applications using a bundler (Vite, Webpack, Next.js, etc.):
 
 ```bash
 npm install @kairoslab/analytics-sdk
+```
+
+Or with yarn / pnpm:
+
+```bash
+yarn add @kairoslab/analytics-sdk
+pnpm add @kairoslab/analytics-sdk
 ```
 
 Then in your app entry point:
@@ -27,7 +49,7 @@ const kairos = new KairosAnalytics({
 kairos.track('page_view', { path: window.location.pathname })
 ```
 
-The SDK uses ethers v6 internally for keccak256 hashing. It is bundled with the package so you do not need to install ethers separately.
+The SDK uses ethers v6 internally for keccak256 hashing. It is bundled with the package -- you do not need to install ethers separately.
 
 ---
 
@@ -257,3 +279,35 @@ router.afterEach((to) => {
 | Data ownership | Google | You (Supabase + on-chain proof) |
 | Blockable by ad blockers | Often | Rarely |
 | Works without cookies | No | Yes |
+
+---
+
+## Key SDK methods
+
+### `track(eventName, properties)` -- returns `EventReceipt`
+
+```javascript
+const receipt = await kairos.track('swap_attempted', {
+  fromToken: 'ETH',
+  toToken: 'USDC',
+  amount: 1.5,
+})
+
+console.log(receipt.clientHash) // 0x7a3f... (keccak256 hash, computed in browser)
+console.log(receipt.eventId)    // evt-abc123
+```
+
+Every `track()` call returns an `EventReceipt` containing the event's `clientHash`. Keep this receipt -- you will use it to verify your event on-chain.
+
+### `verify(receipt)` -- checks Merkle proof on-chain
+
+```javascript
+const result = await kairos.verify(receipt)
+
+console.log(result.hashMatch)  // true -- your client hash matches
+console.log(result.proofValid) // true -- Merkle proof is valid
+console.log(result.anchored)   // true -- root is on Base mainnet
+console.log(result.txHash)     // 0xdef... (Basescan link)
+```
+
+The `verify()` method retrieves the Merkle proof from Supabase and checks it against the on-chain root stored in the KPPEAnchor contract. No permission is required -- verification is fully permissionless.

@@ -18,10 +18,15 @@ Current status of every feature.
 | **SDK (`@kairoslab/analytics-sdk`)** | npm package with client-side hashing, Supabase integration, receipt storage |
 | **App Registry contract** | Maps App IDs to owners on Base mainnet (`0xcbf3...37B8`) |
 | **Railway Relayer v4.0** | Multi-chain aware, K-PPE headers, `/kpe/health` endpoint |
+| **Local Merkle Tree Builder** | `src/kpe/merkle.ts` -- no external K-PPE service needed for core anchoring |
+| **KPPE_MODE env var** | `kppe` (trustless, private), `legacy` (deprecated, public), `disabled` |
+| **`OnChainSender.anchorMerkleRoot()`** | Calls `KPPEAnchor.anchorBatch()` directly -- only root on-chain |
+| **`BatchManager.flushKPPE()`** | Trustless Merkle anchoring path (production default) |
 | **App Dashboard** | 11 widgets -- live feed, wallet analytics, geo, funnels, TX feed |
 | **K-PPE Proof Bar** | Dashboard displays latest batch, Merkle root, Basescan TX link |
 | **Merkle Tree Visualizer** | Interactive tree rendering with proof path highlighting |
 | **KA-HAP 7-Layer Security** | Dynamic security verification from K-PPE crypto self-tests |
+| **KA-HAP Database Tables** | `kpe_proof_batches`, `kpe_event_proofs`, `kpe_signing_keys`, `kpe_verifications`, `kpe_status`, `kpe_nonces` |
 | **Session DNA** | Behavioral fingerprints derived from real user event patterns |
 | **Admin Panel** | Cross-app overview, alerts, app management |
 | **Supabase Auth** | Google OAuth + GitHub OAuth + Email/Password |
@@ -41,6 +46,7 @@ Current status of every feature.
 | Plan auto-activation after payment | Pending webhook handler |
 | Email confirmation flow | Supabase default -- UX polish pending |
 | Multi-app K-PPE batching | Separate Merkle trees per App ID |
+| Legacy mode deprecation | `KPPE_MODE=legacy` flagged for removal in future release |
 
 ---
 
@@ -85,3 +91,8 @@ Current status of every feature.
 | 2025 Q3 | Merkle tree visualizer added to dashboard |
 | 2025 Q3 | KA-HAP 7-layer security with dynamic crypto self-tests |
 | 2025 Q3 | Session DNA behavioral fingerprinting |
+| 2025 Q4 | Local Merkle tree builder integrated into relayer (`src/kpe/merkle.ts`) |
+| 2025 Q4 | `KPPE_MODE` env var: `kppe` / `legacy` / `disabled` |
+| 2025 Q4 | `OnChainSender.anchorMerkleRoot()` replaces `sendBatch()` as default |
+| 2025 Q4 | KA-HAP database tables deployed (`kpe_proof_batches`, `kpe_signing_keys`, etc.) |
+| 2025 Q4 | `events` table updated with `client_hash`, `client_event_id`, `batched`, `batch_id` columns |

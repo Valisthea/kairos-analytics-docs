@@ -1,18 +1,42 @@
 # Relayer
 
-The server-side middleware that bridges the SDK, Supabase, and the dashboard.
+The server-side middleware that bridges the SDK, Supabase, and the blockchain. The relayer is now the central component for both event collection and on-chain Merkle anchoring.
 
 ---
 
 ## What the relayer does
 
-The relayer is a Node.js/Express service deployed on Railway. It serves as the API layer for the Kairos Analytics platform:
+The relayer is a Node.js/Express service deployed on Railway. It serves as the API layer for the Kairos Analytics platform and now includes the **local Merkle tree builder** for K-PPE anchoring:
 
 1. Accepts events from the SDK via `POST /track`
 2. Manages sessions and validates App IDs
-3. Serves event data and batch metadata to the dashboard
-4. Exposes K-PPE security headers (`X-KA-HAP-*`) for the KA-HAP security architecture
-5. Provides a `/kpe/health` endpoint for K-PPE Engine monitoring
+3. **Builds Merkle trees locally** via `BatchManager` using `src/kpe/merkle.ts` (no external K-PPE service needed)
+4. **Anchors Merkle roots on Base mainnet** via `OnChainSender.anchorMerkleRoot()` calling `KPPEAnchor.anchorBatch()`
+5. Serves event data and batch metadata to the dashboard
+6. Exposes K-PPE security headers (`X-KA-HAP-*`) for the KA-HAP security architecture
+7. Provides a `/kpe/health` endpoint for K-PPE Engine monitoring
+
+---
+
+## KPPE_MODE
+
+The relayer supports three on-chain submission modes via the `KPPE_MODE` environment variable:
+
+```
+KPPE_MODE=kppe       # Trustless Merkle anchor (PRODUCTION DEFAULT)
+KPPE_MODE=legacy     # Old trackBatch — full event data on-chain (DEPRECATED)
+KPPE_MODE=disabled   # No on-chain submission
+```
+
+| Mode | BatchManager method | On-chain method | Data on-chain? |
+|---|---|---|---|
+| **`kppe`** | `flushKPPE()` | `OnChainSender.anchorMerkleRoot()` -> `KPPEAnchor.anchorBatch()` | **No** -- only 32-byte Merkle root (data stays private) |
+| `legacy` | `flushLegacy()` | `OnChainSender.sendBatch()` | **Yes** -- full event data as calldata (public) -- **DEPRECATED** |
+| `disabled` | N/A | N/A | N/A |
+
+**Always use `kppe` mode in production.** The legacy mode publishes full event data on-chain, making it public. It exists only for backward compatibility and will be removed in a future release.
+
+If `KPPE_MODE` is not set, the relayer falls back to checking `KPE_ENABLED`: if `KPE_ENABLED=true`, it uses `kppe` mode; otherwise it defaults to `legacy`.
 
 ---
 
@@ -252,9 +276,11 @@ Note the `Access-Control-Expose-Headers` line -- without it, the browser will no
 | `RPC_URL` | Base mainnet RPC endpoint | Yes |
 | `SUPABASE_URL` | Supabase project URL | Yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | Yes |
+| `KPPE_MODE` | On-chain mode: `kppe` (default), `legacy`, or `disabled` | Optional |
+| `KPPE_MAX_BATCH_SIZE` | Maximum events per Merkle tree (default: 256) | Optional |
 | `PORT` | Server port (Railway sets this automatically) | Auto |
 | `RELAYER_API_KEY` | API key for authenticated endpoints | Optional |
-| `BATCH_INTERVAL_MS` | How often to commit event batches on-chain | Optional |
+| `BATCH_INTERVAL_MS` | How often to commit event batches on-chain (default: 60000ms) | Optional |
 
 ---
 

@@ -1,6 +1,16 @@
 # Quick Start
 
-From zero to your first tracked and cryptographically anchored event in under 3 minutes.
+From zero to your first tracked and cryptographically anchored event in under 3 minutes. No wallet connection from your users is required -- K-PPE handles all on-chain anchoring automatically.
+
+---
+
+## What you will get
+
+After following this guide, your dApp will:
+- Track every user interaction (page views, clicks, wallet events, custom events)
+- Hash each event client-side with keccak256 -- the hash is born in the user's browser
+- Anchor Merkle roots on Base mainnet via K-PPE (only 32 bytes on-chain; your data stays **private**)
+- Give you verifiable receipts for every event
 
 ---
 
@@ -8,7 +18,7 @@ From zero to your first tracked and cryptographically anchored event in under 3 
 
 Go to [kairosanalytics.org](https://kairosanalytics.org) and click **Start Free**. Sign up with Google, GitHub, or email.
 
-No credit card required for the Free plan.
+No credit card required for the Free Beta plan (5M events/month, 30-day retention).
 
 ---
 
@@ -32,13 +42,15 @@ Your App ID links your frontend events to your dashboard and appears in your SDK
 
 ## Step 3 -- Install the SDK
 
-### Option A: npm (recommended for bundled apps)
+The SDK is published as `@kairoslab/analytics-sdk` on npm. Pick the option that matches your setup.
+
+### Option A: npm (recommended for React, Next.js, Vue, Vite, Webpack)
 
 ```bash
 npm install @kairoslab/analytics-sdk
 ```
 
-Then in your app entry point:
+Then in your app entry point (e.g., `main.ts`, `App.tsx`, `app.js`):
 
 ```javascript
 import { KairosAnalytics } from '@kairoslab/analytics-sdk'
@@ -53,9 +65,11 @@ const kairos = new KairosAnalytics({
 kairos.track('page_view', { path: window.location.pathname })
 ```
 
-### Option B: Script tag (zero build step)
+The SDK uses ethers v6 internally for keccak256 hashing. It is bundled with the package -- you do not need to install ethers separately.
 
-Paste this before `</body>` on any HTML page:
+### Option B: Script tag (zero build step, works on any HTML page)
+
+Copy and paste this snippet before `</body>` on any HTML page. No build tools, no bundler, no npm required:
 
 ```html
 <!-- Kairos Analytics -->
@@ -69,6 +83,18 @@ Paste this before `</body>` on any HTML page:
   kairos.track('page_view', { path: window.location.pathname });
 </script>
 ```
+
+When loaded via script tag, the SDK is available as `window.KairosAnalytics`.
+
+### Option C: yarn or pnpm
+
+```bash
+yarn add @kairoslab/analytics-sdk
+# or
+pnpm add @kairoslab/analytics-sdk
+```
+
+Then use the same `import` syntax as Option A.
 
 ---
 
@@ -177,18 +203,21 @@ Your track() call
       |
       v
 SDK hashes event client-side (keccak256)
+  → The hash is born in the user's browser, never modified by any server
       |
       v
-Event + hash sent to Supabase
+Event + client_hash sent to Supabase
       |
       v
-K-PPE Engine (every 60s):
-  - Builds Merkle tree from client hashes
-  - Anchors root on Base mainnet
+Relayer's local Merkle tree builder (every 60s):
+  - Reads client_hash values directly (never re-hashes)
+  - Builds sorted-pair Merkle tree (src/kpe/merkle.ts)
+  - Calls KPPEAnchor.anchorBatch() on Base mainnet
+  - Only the 32-byte Merkle root goes on-chain (data stays PRIVATE)
   - Stores proofs in event_receipts
       |
       v
 Your event is now verifiable on-chain forever
 ```
 
-No wallet connection from your users is required. The K-PPE Engine handles all on-chain transactions using its own authorized wallet.
+No wallet connection from your users is required. The relayer handles all on-chain anchoring using its own authorized wallet. No external K-PPE service is needed -- the Merkle tree builder runs locally inside the relayer.
