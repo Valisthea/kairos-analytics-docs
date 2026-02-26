@@ -6,8 +6,9 @@
 * [Quick Start](getting-started/quickstart.md)
 
 ## SDK Integration
-* [Installation & Snippet](sdk/installation.md)
+* [Installation](sdk/installation.md)
 * [Tracking Events](sdk/tracking.md)
+* [Trustless Verification](sdk/verification.md)
 
 ## Dashboards
 * [Authentication](dashboards/authentication.md)
@@ -15,8 +16,9 @@
 
 ## Infrastructure
 * [Architecture](infrastructure/architecture.md)
-* [Relayer](infrastructure/relayer.md)
 * [Smart Contracts](infrastructure/contracts.md)
+* [K-PPE Engine](infrastructure/kppe-engine.md)
+* [Relayer](infrastructure/relayer.md)
 
 ## Reference
 * [Troubleshooting](reference/troubleshooting.md)

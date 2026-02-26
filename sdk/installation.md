@@ -1,97 +1,136 @@
-# Installation & Snippet
+# Installation
 
-Add Kairos Analytics to any web application with a single snippet — no build step required.
-
----
-
-## The universal snippet
-
-Paste this before `</body>` in any HTML page:
-
-```html
-<!-- Kairos Analytics -->
-<script type="module">
-  import { init, page, track } from 'https://esm.sh/@valisthea/analytics'
-  ;(async () => {
-    try {
-      await init({ appId: 'your-app-id', mode: 'offchain' })
-      page(window.location.pathname)
-      window._k = { track }
-    } catch (e) {
-      window._k = { track: () => {} }
-    }
-  })()
-</script>
-```
-
-The `try/catch` wrapping ensures that if the SDK fails for any reason (network issue, CDN outage), your application continues to work normally. The fallback `window._k = { track: () => {} }` silently absorbs any `_k.track()` calls elsewhere on the page.
+Add Kairos Analytics to any web application with npm or a single script tag.
 
 ---
 
-## npm install (for bundled apps)
+## npm install (recommended)
 
-If you use a bundler (Vite, Webpack, etc.):
+For applications using a bundler (Vite, Webpack, Next.js, etc.):
 
 ```bash
-npm install @valisthea/analytics
+npm install @kairoslab/analytics-sdk
 ```
 
 Then in your app entry point:
 
 ```javascript
-import { init, page, track } from '@valisthea/analytics'
+import { KairosAnalytics } from '@kairoslab/analytics-sdk'
 
-await init({ appId: 'your-app-id', mode: 'offchain' })
-page(window.location.pathname)
+const kairos = new KairosAnalytics({
+  appId: 'your-app-id',
+  supabaseUrl: 'https://your-project.supabase.co',
+  supabaseAnonKey: 'your-supabase-anon-key',
+})
 
-// Export for use anywhere
-export { track }
+// Track a page view
+kairos.track('page_view', { path: window.location.pathname })
 ```
+
+The SDK uses ethers v6 internally for keccak256 hashing. It is bundled with the package so you do not need to install ethers separately.
+
+---
+
+## Browser script tag (zero build step)
+
+For static HTML pages or applications without a bundler:
+
+```html
+<!-- Kairos Analytics -->
+<script src="https://cdn.jsdelivr.net/npm/@kairoslab/analytics-sdk/dist/browser.min.js"></script>
+<script>
+  const kairos = new window.KairosAnalytics({
+    appId: 'your-app-id',
+    supabaseUrl: 'https://your-project.supabase.co',
+    supabaseAnonKey: 'your-supabase-anon-key',
+  });
+
+  // Track a page view
+  kairos.track('page_view', { path: window.location.pathname });
+</script>
+```
+
+When loaded via script tag, the SDK is available as `window.KairosAnalytics`.
 
 ---
 
 ## Configuration options
 
 ```javascript
-await init({
-  appId: 'your-app-id',   // Required. Your registered app identifier.
-  mode: 'offchain',        // 'offchain' (recommended) or 'onchain'
-  debug: false,            // true = verbose console logs
-  relayerUrl: '...',       // Optional. Override the default relayer URL.
+const kairos = new KairosAnalytics({
+  appId: 'your-app-id',               // Required
+  supabaseUrl: 'https://...co',       // Required
+  supabaseAnonKey: 'eyJhbG...',       // Required
+  debug: false,                        // Optional
+  onReceipt: (receipt) => { ... },     // Optional
+  receiptStorage: 'localStorage',      // Optional
 })
 ```
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `appId` | string | — | **Required.** Your registered App ID |
-| `mode` | string | `'offchain'` | `'offchain'` sends via HTTP. `'onchain'` signs from user wallet. |
-| `debug` | boolean | `false` | Enable verbose logging to the console |
-| `relayerUrl` | string | Default relayer | Override if self-hosting |
+|---|---|---|---|
+| `appId` | string | -- | **Required.** Your registered App ID |
+| `supabaseUrl` | string | -- | **Required.** Your Supabase project URL |
+| `supabaseAnonKey` | string | -- | **Required.** Your Supabase anonymous key |
+| `debug` | boolean | `false` | Enable verbose logging to the browser console |
+| `onReceipt` | function | -- | Callback fired after each event is tracked, receives `EventReceipt` |
+| `receiptStorage` | string | `'localStorage'` | Where to store receipts: `'localStorage'`, `'sessionStorage'`, or `'none'` |
 
----
+### appId
 
-## `page()` — tracking page views
+Your registered application identifier. Must match an App ID registered in the App Registry contract. Lowercase letters, numbers, and hyphens only, 3 to 32 characters.
 
-Call `page()` once per page load with the current path:
+### supabaseUrl
+
+The URL of your Supabase project. Found in your Supabase dashboard under Project Settings > API.
+
+### supabaseAnonKey
+
+The anonymous (public) key for your Supabase project. This key is safe to expose in client-side code -- it only has access to the `analytics_events` table via Row Level Security policies.
+
+### debug
+
+When `true`, the SDK logs detailed information to the browser console:
+
+```
+[Kairos] SDK initialized | appId: your-app-id
+[Kairos] Event hashed client-side: 0x7a3f... (swap_attempted)
+[Kairos] Event stored in Supabase | eventId: evt-abc123
+[Kairos] Receipt saved to localStorage
+```
+
+### onReceipt
+
+A callback function called every time an event is tracked successfully. Receives the `EventReceipt` object:
 
 ```javascript
-// Static HTML — on each page
-page(window.location.pathname)
-
-// Single-page app — call on every route change
-router.on('navigate', (path) => page(path))
-
-// React Router example
-useEffect(() => {
-  page(location.pathname)
-}, [location.pathname])
+const kairos = new KairosAnalytics({
+  appId: 'your-app-id',
+  supabaseUrl: '...',
+  supabaseAnonKey: '...',
+  onReceipt: (receipt) => {
+    console.log('Event tracked:', receipt.eventId)
+    console.log('Client hash:', receipt.clientHash)
+    // Send to your backend, store in state, etc.
+  },
+})
 ```
+
+### receiptStorage
+
+Controls where `EventReceipt` objects are stored for later verification:
+
+| Value | Behavior |
+|---|---|
+| `'localStorage'` | Receipts persist across browser sessions (default) |
+| `'sessionStorage'` | Receipts cleared when the tab closes |
+| `'none'` | Receipts not stored; use `onReceipt` callback instead |
 
 ---
 
 ## Placement on the page
 
-The snippet must load **after** your page content, before `</body>`. It should be the last script on the page to avoid blocking rendering.
+For the script tag approach, place the snippet before `</body>` as the last script on the page to avoid blocking rendering:
 
 ```html
 <html>
@@ -105,12 +144,102 @@ The snippet must load **after** your page content, before `</body>`. It should b
     <script src="app.js"></script>
 
     <!-- Kairos Analytics last -->
-    <script type="module">
-      import { init, page, track } from 'https://esm.sh/@valisthea/analytics'
-      ...
+    <script src="https://cdn.jsdelivr.net/npm/@kairoslab/analytics-sdk/dist/browser.min.js"></script>
+    <script>
+      const kairos = new window.KairosAnalytics({ ... });
+      kairos.track('page_view', { path: window.location.pathname });
     </script>
   </body>
 </html>
+```
+
+---
+
+## Framework examples
+
+### React
+
+```javascript
+// analytics.js
+import { KairosAnalytics } from '@kairoslab/analytics-sdk'
+
+export const kairos = new KairosAnalytics({
+  appId: 'your-app-id',
+  supabaseUrl: process.env.REACT_APP_SUPABASE_URL,
+  supabaseAnonKey: process.env.REACT_APP_SUPABASE_ANON_KEY,
+})
+```
+
+```javascript
+// App.jsx
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import { kairos } from './analytics'
+
+function App() {
+  const location = useLocation()
+
+  useEffect(() => {
+    kairos.track('page_view', { path: location.pathname })
+  }, [location.pathname])
+
+  return <div>...</div>
+}
+```
+
+### Next.js
+
+```javascript
+// lib/analytics.ts
+import { KairosAnalytics } from '@kairoslab/analytics-sdk'
+
+export const kairos = typeof window !== 'undefined'
+  ? new KairosAnalytics({
+      appId: 'your-app-id',
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    })
+  : null
+```
+
+```javascript
+// app/layout.tsx
+'use client'
+import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
+import { kairos } from '@/lib/analytics'
+
+export default function Layout({ children }) {
+  const pathname = usePathname()
+
+  useEffect(() => {
+    kairos?.track('page_view', { path: pathname })
+  }, [pathname])
+
+  return <html><body>{children}</body></html>
+}
+```
+
+### Vue
+
+```javascript
+// plugins/analytics.js
+import { KairosAnalytics } from '@kairoslab/analytics-sdk'
+
+export const kairos = new KairosAnalytics({
+  appId: 'your-app-id',
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+})
+```
+
+```javascript
+// router/index.js
+import { kairos } from '../plugins/analytics'
+
+router.afterEach((to) => {
+  kairos.track('page_view', { path: to.path })
+})
 ```
 
 ---
@@ -119,9 +248,12 @@ The snippet must load **after** your page content, before `</body>`. It should b
 
 | | GA4 | Kairos Analytics |
 |---|---|---|
-| Installation | 1 snippet | 1 snippet |
-| Track event | `gtag('event', 'name', {...})` | `_k.track('name', 'category', {...})` |
-| Page view | Automatic | `page(pathname)` |
-| Data ownership | Google | You (Base mainnet) |
+| Installation | 1 snippet | 1 snippet or npm install |
+| Track event | `gtag('event', 'name', {...})` | `kairos.track('name', {...})` |
+| Page view | Automatic | `kairos.track('page_view', { path })` |
+| Client-side hashing | No | Yes (keccak256) |
+| On-chain proof | No | Yes (Base mainnet) |
+| Receipts | No | Yes (EventReceipt with hash) |
+| Data ownership | Google | You (Supabase + on-chain proof) |
 | Blockable by ad blockers | Often | Rarely |
 | Works without cookies | No | Yes |

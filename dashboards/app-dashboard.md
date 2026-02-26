@@ -1,6 +1,6 @@
 # App Dashboard
 
-A real-time behavioral analytics view for a single registered application.
+A real-time behavioral analytics view for a single registered application, with K-PPE proof status and Merkle verification.
 
 ---
 
@@ -9,7 +9,7 @@ A real-time behavioral analytics view for a single registered application.
 Each registered app gets a dedicated dashboard URL:
 
 ```
-https://your-dashboard-url/dashboard-app.html?appId=your-app-id
+https://kairos-dashboard-seven.vercel.app/dashboard-app.html?appId=your-app-id
 ```
 
 Or navigate to it from the Admin Panel by clicking **View Dashboard** on any app.
@@ -21,7 +21,7 @@ Or navigate to it from the Admin Panel by clicking **View Dashboard** on any app
 Six summary cards at the top of the dashboard update in real time:
 
 | Card | What it measures |
-|------|-----------------|
+|---|---|
 | **Total Events** | All events received for this app |
 | **Active Sessions** | Users currently active on your site |
 | **Unique Wallets** | Distinct wallet addresses seen |
@@ -31,19 +31,65 @@ Six summary cards at the top of the dashboard update in real time:
 
 ---
 
+## K-PPE Merkle Anchor Status
+
+The K-PPE section at the top of the dashboard displays the current state of on-chain proof anchoring:
+
+### Proof Bar
+
+A status bar showing:
+- **Latest Batch ID** -- the most recent batch number anchored on-chain
+- **Total Events Anchored** -- cumulative count of events with on-chain Merkle proof
+- **Latest Merkle Root** -- the most recent 32-byte root stored in KPPEAnchor
+- **Last Anchored** -- timestamp of the most recent on-chain transaction
+- **Basescan Link** -- direct link to the KPPEAnchor contract events on Basescan
+
+### Batch Info
+
+Clicking on a batch reveals:
+- **Merkle Root** -- the `bytes32` root hash stored on-chain
+- **Event Count** -- number of events in this batch
+- **Tree Depth** -- depth of the binary Merkle tree
+- **Previous Root** -- link in the chain of trust (`prevRoot`)
+- **TX Hash** -- the Base mainnet transaction hash, linked to Basescan
+- **Anchored At** -- block timestamp of the on-chain transaction
+
+### On-Chain Proof Links
+
+Every batch includes a direct link to its transaction on Basescan:
+```
+https://basescan.org/tx/0x...
+```
+
+And a link to the KPPEAnchor contract for manual verification:
+```
+https://basescan.org/address/0x3B53F7044E47766769156bF210c2661F03Df45dd#readContract
+```
+
+### Merkle Tree Visualization
+
+The dashboard includes an interactive Merkle tree visualizer. Select any confirmed batch to:
+- See the full tree structure rendered visually
+- Click any leaf node to generate its Merkle proof
+- View the proof path highlighted from leaf to root
+- See the proof detail panel with each step's sibling hash and position
+- Verify the proof result (valid or invalid) in real time
+
+---
+
 ## Widgets
 
-Click **⚙ Widgets** in the navigation bar to show or hide any widget. Your preferences are saved automatically.
+Click the gear icon in the navigation bar to show or hide any widget. Your preferences are saved automatically.
 
 ### Live Event Feed
-A scrolling stream of events as they arrive from the relayer. Each row shows:
-- Event name
-- Category (color-coded)
+A scrolling stream of events as they arrive. Each row shows:
+- Event name and type
 - Page path
+- Client hash (truncated)
 - Time elapsed
 
 ### Active Sessions
-Cards for each currently active session showing the page they're on, how many events they've fired, and session duration.
+Cards for each currently active session showing the page they are on, how many events they have fired, and session duration.
 
 ### Page Statistics
 Horizontal bar chart showing event counts per page path. Useful for identifying your most and least visited pages.
@@ -76,9 +122,9 @@ A list of all `_failed` events with their error context, useful for monitoring t
 
 ## Live vs Mock data
 
-When you first open the dashboard, it displays **mock data** — realistic-looking sample data to demonstrate the interface. The badge in the top bar reads **MOCK DATA**.
+When you first open the dashboard, it displays **mock data** -- realistic-looking sample data to demonstrate the interface. The badge in the top bar reads **MOCK DATA**.
 
-To switch to your real data, authenticate your account. The badge changes to **LIVE DATA** and all widgets reload with actual events from the relayer.
+To switch to your real data, authenticate your account. The badge changes to **LIVE DATA** and all widgets reload with actual events from Supabase and on-chain data from KPPEAnchor.
 
 See [Authentication](authentication.md) for how to connect.
 
@@ -86,4 +132,4 @@ See [Authentication](authentication.md) for how to connect.
 
 ## Auto-refresh
 
-When connected, the dashboard automatically refreshes all data every 30 seconds. The "last synced" timestamp at the bottom of the page shows when data was last fetched.
+When connected, the dashboard automatically refreshes all data every 30 seconds. The "last synced" timestamp at the bottom of the page shows when data was last fetched. K-PPE batch status is refreshed alongside event data.
