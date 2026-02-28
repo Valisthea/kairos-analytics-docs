@@ -1,58 +1,107 @@
 # How It Works
 
-Kairos Analytics follows a linear 4-step flow from browser to blockchain.
+Kairos Analytics operates as a 4-step pipeline that takes raw browser events and turns them into cryptographically verifiable on-chain proofs.
 
-```
-Browser (snippet.js) --> Relayer (Node.js) --> Merkle Tree --> Base Mainnet (KPPEAnchor)
-```
+## The Pipeline
 
----
+### Step 1 — Snippet Captures Events
 
-## Step 1: Event Capture (Browser)
+The Kairos snippet runs in your users' browsers. It automatically captures 15+ event types without any configuration:
 
-The snippet (snippet.js) runs in the user s browser and captures 15+ event types:
+* **Web2 events**: page views, clicks, scroll depth, form submissions, outbound clicks, tab visibility, performance metrics, JavaScript errors
+* **Web3 events**: wallet detection, wallet connect/disconnect, chain changes, transaction submission/confirmation/failure, token swaps
 
-**Web2 events:** page_view, click, scroll_depth, form_submit, outbound_click, tab_hidden, performance, error
+The snippet also auto-detects which wallet provider the user has installed (MetaMask, Coinbase Wallet, Rabby, Brave Wallet, Trust Wallet, Phantom) and fires a `wallet_detected` event.
 
-**Web3 events:** wallet_detected, wallet_connected, wallet_disconnected, chain_changed, tx_submitted, tx_confirmed, tx_failed, swap_executed
+Each event is sent to the Kairos relayer via `POST /track` with the app ID, event type, timestamp, and metadata.
 
-Auto-detects: MetaMask, Coinbase Wallet, Rabby, Brave Wallet, Trust Wallet, Phantom.
+### Step 2 — Relayer Hashes Events
 
-Events are sent to the relayer via POST /track.
+The relayer receives events and hashes each one using **keccak256** (the same hash function used by Ethereum). This creates a unique, deterministic fingerprint for every event.
 
-## Step 2: Hashing and Accumulation (Relayer)
+The hash includes the event type, timestamp, app ID, and payload — making it impossible to alter any detail without changing the hash.
 
-The relayer hashes each event with keccak256 and accumulates them per appId.
+### Step 3 — Merkle Tree Batching
 
-## Step 3: Merkle Tree Building
+Events are accumulated per app ID. When a batch reaches the configured threshold (size or time-based), the relayer constructs a **Merkle tree** from all the event hashes in the batch.
 
-When a batch is ready (size threshold or timer), the relayer builds a binary Merkle tree and computes the root.
+A Merkle tree is a binary hash tree where every leaf is an event hash, and each parent node is the hash of its two children. The single hash at the top — the **Merkle root** — represents every event in the batch.
 
-## Step 4: On-chain Anchoring
+This structure allows **individual event verification**: you can prove any single event is included in a batch without revealing the other events, by providing the Merkle proof (the sibling hashes along the path from the leaf to the root).
 
-The Merkle root is anchored on Base mainnet via KPPEAnchor.anchor(). The receipt is stored in Supabase.
+### Step 4 — On-Chain Anchoring
 
----
+The Merkle root is submitted to the **KPPEAnchor** smart contract on Base mainnet via `anchor()`. The transaction receipt is stored in Supabase alongside the batch metadata (event count, timestamp, app ID).
+
+Once anchored, the Merkle root is **permanent, public, and tamper-proof**. Anyone can:
+
+1. Recompute the hash of any event
+2. Verify its inclusion in the Merkle tree using the proof
+3. Confirm the Merkle root matches what's stored on-chain via Basescan
 
 ## Verification
 
-Every step is verifiable:
+Kairos operates on two verification levels, designed to balance data integrity with user privacy.
 
-1. An event hash can be recomputed from its raw data
-2. Its inclusion in the Merkle tree can be proven with a Merkle proof
-3. The anchoring can be verified on [Basescan](https://basescan.org/address/0x3B53F7044E47766769156bF210c2661F03Df45dd)
+### Batch-Level Integrity (Public)
 
----
+Anyone can verify that a batch of events was anchored on-chain:
 
-## Innovations
+1. Go to the KPPEAnchor contract on Basescan
+2. Call `getAnchor(batchId)` — returns the Merkle root, event count, timestamp, and app ID
+3. This proves that a specific dataset existed at a specific time and has not been modified since
 
-6 innovations that require the full pipeline from browser to blockchain:
+The Merkle root on-chain proves that **no event was added, removed, or modified after anchoring** — without exposing any individual user data. Batch-level integrity is public and permanent.
 
-| Innovation | Description |
-|-----------|-------------|
-| **Session DNA** | Behavioral fingerprinting. Bot detection without cookies. |
-| **K-PPE Merkle Proofs** | Trustless event verification against on-chain Merkle roots. |
-| **dApp Health Score** | Composite score: conversion, integrity, reliability, growth, UX, engagement, retention, volume. |
-| **Wallet Reputation** | Anti-Sybil scoring for bots, farms, and Sybil attacks. |
-| **Anomaly Radar** | Real-time statistical anomaly detection. |
-| **Predictive Analytics** | DAU prediction and churn risk detection. |
+### Event-Level Verification (Authorized Only)
+
+To verify that a specific event is included in a batch, you need the Merkle proof — the sibling hashes along the path from the event leaf to the root. This proof is available only to authorized app owners via the Kairos API (`GET /verify/proof`).
+
+```
+Event data → keccak256(event) → Merkle proof → Merkle root → On-chain anchor
+```
+
+This is intentional: events contain sensitive user data (approximate geolocation, wallet addresses, navigation behavior, device info). Publishing individual proofs would expose this data. By keeping event-level verification behind authentication, Kairos ensures **privacy by design** while maintaining **tamper-proof integrity**.
+
+### What This Means in Practice
+
+You don't need to trust Kairos to know your dataset hasn't been altered — the on-chain Merkle root proves it mathematically. But individual event data stays private, visible only to you as the dApp owner.
+
+## Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────┐
+│  Browser                                         │
+│  snippet.js auto-tracks events                   │
+│  → page_view, click, wallet_connected, tx_sent  │
+└──────────────────┬──────────────────────────────┘
+                   │ POST /track
+                   ▼
+┌─────────────────────────────────────────────────┐
+│  Relayer (Node.js / Railway)                     │
+│  1. Receives event                               │
+│  2. keccak256(event) → hash                      │
+│  3. Accumulates in batch by appId                │
+│  4. Batch ready → builds Merkle tree             │
+│  5. anchor(merkleRoot) on Base mainnet           │
+│  6. Stores receipt in Supabase                   │
+└──────────────────┬──────────────────────────────┘
+                   │ anchor()
+                   ▼
+┌─────────────────────────────────────────────────┐
+│  Base Mainnet                                    │
+│  KPPEAnchor contract stores Merkle root          │
+│  Verifiable on Basescan by anyone                │
+└─────────────────────────────────────────────────┘
+```
+
+## What Makes This Different
+
+| Feature | Traditional Analytics | Block Explorers | Kairos |
+|---------|----------------------|-----------------|--------|
+| Page views & clicks | ✅ | ❌ | ✅ |
+| Wallet tracking | ❌ | Partial | ✅ |
+| Transaction funnels | ❌ | ❌ | ✅ |
+| Proof of data integrity | ❌ | N/A | ✅ On-chain |
+| Self-hosted option | ❌ | ❌ | Planned |
+| Privacy-first | ❌ | ❌ | ✅ No cookies |

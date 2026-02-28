@@ -1,46 +1,37 @@
-# Table of contents
-
-* [Kairos Analytics](README.md)
+# Table of Contents
 
 ## Getting Started
 
+* [Introduction](README.md)
 * [How It Works](getting-started/how-it-works.md)
-* [Quickstart](getting-started/quickstart.md)
+* [Quick Start — Snippet](getting-started/quickstart-snippet.md)
+* [Quick Start — npm SDK](getting-started/quickstart-npm.md)
+
+## SDK Integration
+
+* [Snippet v2.0](sdk/snippet.md)
+* [Tracking Events](sdk/tracking.md)
+* [Web3 Auto-Detection](sdk/web3-detect.md)
+* [npm Package](sdk/npm-package.md)
+* [Verification API](sdk/verification.md)
+
+## Dashboard
+
+* [Authentication & Onboarding](dashboard/authentication.md)
+* [App Dashboard](dashboard/app-dashboard.md)
+* [Widgets Reference](dashboard/widgets.md)
+* [Audit & Security](dashboard/audit-security.md)
 
 ## Infrastructure
 
-* [System Architecture](infrastructure/architecture.md)
-* [Data Pipeline](infrastructure/data-pipeline.md)
-* [K-PPE Engine](infrastructure/kppe-engine.md)
-* [Relayer](infrastructure/relayer.md)
+* [Architecture Overview](infrastructure/architecture.md)
+* [Relayer API — 54 Endpoints](infrastructure/relayer.md)
 * [Smart Contracts](infrastructure/contracts.md)
-
-## SDK
-
-* [Installation](sdk/installation.md)
-* [Event Tracking](sdk/tracking.md)
-* [Proof Verification](sdk/verification.md)
-
-## Stripe Integration
-
-* [Stripe Architecture](stripe/architecture.md)
-* [Configuration](stripe/configuration.md)
-* [Payment Flow](stripe/payment-flow.md)
-* [Plans & Pricing](stripe/plans.md)
-
-## Pages
-
-* [Landing Page](pages/landing.md)
-* [Register Page](pages/register.md)
-
-## Dashboards
-
-* [App Dashboard](dashboards/app-dashboard.md)
-* [Authentication](dashboards/authentication.md)
-* [Audit & Security](dashboards/audit-security.md)
+* [K-PPE Engine](infrastructure/kppe-engine.md)
 
 ## Reference
 
-* [Roadmap](reference/roadmap.md)
+* [Plans & Pricing](reference/plans.md)
 * [Troubleshooting](reference/troubleshooting.md)
-* [Audit & Issues](reference/audit-issues.md)
+* [Roadmap](reference/roadmap.md)
+* [Changelog](reference/changelog.md)

@@ -1,85 +1,59 @@
 # Kairos Analytics
 
-**Complete Technical Documentation -- Version 6.0 -- February 2026**
+**The first Web3 analytics protocol with cryptographic proof of data integrity.**
 
-> Every click. Hashed. Proved on-chain.
+Every event your dApp generates is hashed with keccak256, batched into Merkle trees, and anchored on Base mainnet. Your analytics data isn't just collected — it's mathematically proven and publicly verifiable.
 
-Kairos Analytics is the first Web3 analytics protocol with cryptographic proof of data integrity. Every event is hashed, batched into Merkle trees, and anchored on-chain on Base mainnet via the KPPEAnchor contract.
+## Why Kairos?
 
----
+Traditional analytics tools like Google Analytics weren't designed for Web3. They can't track wallet interactions, don't understand on-chain behavior, and offer zero proof that the data hasn't been tampered with. Block explorers show on-chain activity but miss everything that happens before and after a transaction.
 
-## Why Kairos Analytics?
+Kairos fills the gap: **full-funnel analytics from first page view to confirmed transaction, with every event cryptographically anchored on-chain.**
 
-Traditional analytics tools were built for Web2 -- they own your data, track via cookies, and offer zero cryptographic guarantees. Blockchain-native tools like Dune focus on on-chain data, not frontend behavior.
+## Core Features
 
-Kairos gives you:
+**2-Line Integration** — Drop a script tag into your dApp. 15+ event types are auto-tracked with zero configuration. Wallet detection, page views, clicks, scroll depth, transactions — all captured automatically.
 
-- **Behavioral analytics** -- page views, clicks, funnels, drop-offs, wallet events
-- **Cryptographic integrity** -- every event hashed with keccak256
-- **On-chain proof** -- Merkle roots anchored on Base mainnet, tamper-proof
-- **Data privacy** -- only a 32-byte root goes on-chain; event data stays private
-- **Data ownership** -- your data lives in Supabase, not ours
-- **2-line integration** -- one script tag, live in 30 seconds
+**Cryptographic Proof** — Every event is hashed. Batches are organized into Merkle trees. The Merkle root is anchored on Base mainnet via the KPPEAnchor contract. Batch-level integrity is public and verifiable on Basescan. Event-level verification is available to app owners via the API — keeping user data private by design.
 
----
+**21 Dashboard Widgets** — Real-time analytics purpose-built for Web3. Wallet analytics, transaction funnels, conversion tracking, session timelines, error monitoring, geographic distribution, and more.
 
-## Tech Stack
+**Web3 Native** — Auto-detects MetaMask, Coinbase Wallet, Rabby, Brave Wallet, Trust Wallet, and Phantom. Tracks wallet connects, disconnects, chain switches, and transaction lifecycles without any additional code.
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript |
-| Styling | Inline CSSProperties, CSS variables, Instrument Sans + JetBrains Mono |
-| Auth | Supabase Auth (Google OAuth, GitHub OAuth, Email/Password) |
-| Backend | Node.js relayer on Railway |
-| Database | Supabase (PostgreSQL) |
-| Blockchain | Base mainnet (chain ID 8453) |
-| Contracts | KPPEAnchor (Merkle anchoring), App Registry |
-| Payments | Stripe (Subscriptions + Payment Element) |
-| Icons | KI Icon System (70+ custom SVG icons) |
+## Quick Example
 
----
+```html
+<script>window.KAIROS_APP_ID = "your-app-id";</script>
+<script src="https://kairosanalytics.org/snippet.js" async></script>
+```
 
-## Smart Contracts (Base Mainnet)
+That's it. Your dApp is now tracked with on-chain proof.
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| **KPPEAnchor** | [`0x3B53F7044E47766769156bF210c2661F03Df45dd`](https://basescan.org/address/0x3B53F7044E47766769156bF210c2661F03Df45dd) | Merkle root anchoring and proof verification |
-| **App Registry** | [`0xcbf3e71fb2E09929682b8448442d184f8E1E37B8`](https://basescan.org/address/0xcbf3e71fb2E09929682b8448442d184f8E1E37B8) | App registration and ownership |
+## Architecture at a Glance
 
-Both contracts are verified on Basescan.
+```
+Browser (snippet.js)
+    ↓ POST /track
+Relayer (Node.js on Railway)
+    ↓ keccak256 hash → Merkle tree
+Base Mainnet (KPPEAnchor contract)
+    ↓ anchor()
+Verifiable on Basescan
+```
 
----
+## Plans
 
-## Comparison
+| Plan | Price | Events/month | Widgets | Proof |
+|------|-------|-------------|---------|-------|
+| Free | $0 | 5M | 7 | Base Sepolia |
+| Builder | $29/mo | 50M | 14 | Base mainnet (daily) |
+| Protocol | $99/mo | 500M | 21 | Base mainnet (hourly) |
 
-| | Google Analytics | Mixpanel | Dune Analytics | **Kairos Analytics** |
-|---|---|---|---|---|
-| Behavioral tracking | Yes | Yes | No | **Yes** |
-| Web3 / wallet events | No | No | On-chain only | **Yes (frontend + wallet)** |
-| Client-side hashing | No | No | No | **Yes (keccak256)** |
-| On-chain Merkle proof | No | No | No | **Yes (Base mainnet)** |
-| Data ownership | Google owns it | Mixpanel owns it | Public blockchain | **You own it** |
-| Ad-blocker resistant | No | Partially | Yes | **Yes** |
-| Integration time | 5 min | 30 min | N/A | **30 seconds** |
-| Free tier | Limited | Limited | Free queries | **5M events/mo** |
+[Get started for free →](https://kairosanalytics.org/register.html)
 
----
+## Links
 
-## How to use these docs
-
-| If you want to... | Go to |
-|---|---|
-| Understand the system | [How It Works](getting-started/how-it-works.md) |
-| Integrate in 3 minutes | [Quickstart](getting-started/quickstart.md) |
-| Track custom events | [Event Tracking](sdk/tracking.md) |
-| Verify data on-chain | [Proof Verification](sdk/verification.md) |
-| Understand Stripe billing | [Stripe Architecture](stripe/architecture.md) |
-| See the full architecture | [System Architecture](infrastructure/architecture.md) |
-| Check the roadmap | [Roadmap](reference/roadmap.md) |
-| Fix issues | [Troubleshooting](reference/troubleshooting.md) |
-
----
-
-**Domain:** kairosanalytics.org
-**Primary chain:** Base mainnet
-**Relayer:** kairos-relayer-production.up.railway.app
+* **Website**: [kairosanalytics.org](https://kairosanalytics.org)
+* **Dashboard**: [kairosanalytics.org/dashboard](https://kairosanalytics.org/dashboard)
+* **KPPEAnchor Contract**: Verified on Base mainnet — [View on Basescan](https://basescan.org)
+* **Status**: [kairosanalytics.org/status](https://kairosanalytics.org/status)
